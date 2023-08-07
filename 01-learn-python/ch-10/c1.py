@@ -1,0 +1,23 @@
+def purchase(price, money_available):
+    if money_available - price >= 0:
+        return money_available - price
+    raise Exception("not enough money")
+
+
+# Don't edit below this line
+
+
+def test(price, money_available):
+    try:
+        print(f"Attempting to purchase an item for ${price} with ${money_available}")
+        leftover = purchase(price, money_available)
+        print(f"Success! There is ${leftover} leftover")
+    except Exception as e:
+        print(f"Purchase exception: {e}")
+    print("---")
+
+
+test(10.00, 20.00)
+test(30.00, 20.00)
+test(15.10, 15.10)
+test(1430.00, 69.00)
