@@ -2,63 +2,105 @@ package main
 
 import (
 	"fmt"
-	"time"
 )
 
-func pingPong(numPings int) {
-	pings := make(chan struct{})
-	pongs := make(chan struct{})
-	go ponger(pings, pongs)
-	go pinger(pings, pongs, numPings)
-
-	for range pings {
-	}
-
-	for range pongs {
-	}
-
+type biller[C customer] interface {
+	Charge(C) bill
+	Name() string
 }
 
-// don't touch below this line
+// don't edit below this line
 
-func pinger(pings, pongs chan struct{}, numPings int) {
-	go func() {
-		sleepTime := 50 * time.Millisecond
-		for i := 0; i < numPings; i++ {
-			fmt.Println("ping", i, "sent")
-			pings <- struct{}{}
-			time.Sleep(sleepTime)
-			sleepTime *= 2
-		}
-		close(pings)
-	}()
-	i := 0
-	for range pongs {
-		fmt.Println("pong", i, "got")
-		i++
-	}
-	fmt.Println("pongs done")
+type userBiller struct {
+	Plan string
 }
 
-func ponger(pings, pongs chan struct{}) {
-	i := 0
-	for range pings {
-		fmt.Println("ping", i, "got", "pong", i, "sent")
-		pongs <- struct{}{}
-		i++
+func (ub userBiller) Charge(u user) bill {
+	amount := 50.0
+	if ub.Plan == "pro" {
+		amount = 100.0
 	}
-	fmt.Println("pings done")
-	close(pongs)
+	return bill{
+		Customer: u,
+		Amount:   amount,
+	}
 }
 
-func test(numPings int) {
-	fmt.Println("Starting game...")
-	pingPong(numPings)
-	fmt.Println("===== Game over =====")
+func (sb userBiller) Name() string {
+	return fmt.Sprintf("%s user biller", sb.Plan)
+}
+
+type orgBiller struct {
+	Plan string
+}
+
+func (ob orgBiller) Name() string {
+	return fmt.Sprintf("%s org biller", ob.Plan)
+}
+
+func (ob orgBiller) Charge(o org) bill {
+	amount := 2000.0
+	if ob.Plan == "pro" {
+		amount = 3000.0
+	}
+	return bill{
+		Customer: o,
+		Amount:   amount,
+	}
+}
+
+type customer interface {
+	GetBillingEmail() string
+}
+
+type bill struct {
+	Customer customer
+	Amount   float64
+}
+
+type user struct {
+	UserEmail string
+}
+
+func (u user) GetBillingEmail() string {
+	return u.UserEmail
+}
+
+type org struct {
+	Admin user
+	Name  string
+}
+
+func (o org) GetBillingEmail() string {
+	return o.Admin.GetBillingEmail()
 }
 
 func main() {
-	test(4)
-	test(3)
-	test(2)
+	testBiller[user](
+		userBiller{Plan: "basic"},
+		user{UserEmail: "joe@example.com"},
+	)
+	testBiller[user](
+		userBiller{Plan: "basic"},
+		user{UserEmail: "samuel.boggs@example.com"},
+	)
+	testBiller[user](
+		userBiller{Plan: "pro"},
+		user{UserEmail: "jade.row@example.com"},
+	)
+	testBiller[org](
+		orgBiller{Plan: "basic"},
+		org{Admin: user{UserEmail: "challis.rane@example.com"}},
+	)
+	testBiller[org](
+		orgBiller{Plan: "pro"},
+		org{Admin: user{UserEmail: "challis.rane@example.com"}},
+	)
+}
+
+func testBiller[C customer](b biller[C], c C) {
+	fmt.Printf("Using '%s' to create a bill for '%s'\n", b.Name(), c.GetBillingEmail())
+	bill := b.Charge(c)
+	fmt.Printf("Bill created for %v dollars\n", bill.Amount)
+	fmt.Println(" --- ")
 }
