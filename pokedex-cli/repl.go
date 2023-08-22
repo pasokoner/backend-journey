@@ -14,7 +14,7 @@ func cleanInput(i string) []string {
 	return words
 }
 
-func startRepl() {
+func startRepl(cfg *config) {
 	scanner := bufio.NewScanner(os.Stdin)
 	commands := getCommands()
 
@@ -38,7 +38,7 @@ func startRepl() {
 			continue
 		}
 
-		err := c.callback()
+		err := c.callback(cfg)
 
 		if err != nil {
 			fmt.Println(err)
